@@ -44,10 +44,12 @@ theorem Slice.from_val {α} (l : List α) (h : l.length ≤ Usize.max)
 @[simp, simp_lists_safe, grind =, agrind =]
 theorem Slice.val_from {α} (s : Slice α) h
   : Slice.from s.val h = s := by
-  cases s
-  simp [val, Slice.from] at *
-  simp [ListN_length]
-  apply ListN.to_from_inverse
+  obtain ⟨leng, list, bound⟩ := s
+  simp only [val, Slice.from]
+  congr 1
+  · exact ListN_length list
+  · exact ListN.to_from_inverse
+  · exact proof_irrel_heq _ _
 
 theorem Slice.eq_iff {α} (s0 s1 : Slice α) : s0 = s1 ↔ s0.val = s1.val := by
   constructor

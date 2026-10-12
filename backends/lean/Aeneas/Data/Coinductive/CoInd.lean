@@ -147,7 +147,7 @@ def CoInd.fold (x : F (CoInd F)) : CoInd F where
 
 theorem CoInd.fold_approx (x : F (CoInd F)) n :
     (CoInd.fold F x).approx (n + 1) = PF.map F (λ c => c.approx n) x :=
-  by simp [fold]
+  by simp [fold]; rfl
 
 theorem coherent_eq_i (x : CoInd F) n m {i1 k1 i2 k2} :
     PF.unpack (x.approx (n + 1)) = .obj i1 k1 →
@@ -209,7 +209,7 @@ theorem unfold_fold x :
   simp
   rename_i h
   rw [<-h]
-  simp
+  exact PF.unpack_pack _
 
 /-- `fold` is a left inverse of `unfold`. Together with `unfold_fold`, this shows
 `fold` and `unfold` are inverse isomorphisms, i.e. `CoInd F ≅ F (CoInd F)`. -/
@@ -276,7 +276,7 @@ theorem cofix_eq {α} (f : α → F α) a :
   ext n
   cases n
   · rfl
-  simp [cofix, CoInd.fold, cofix_approx]
+  simp [cofix, CoInd.fold, cofix_approx]; rfl
 
 section partial_order
 open Lean.Order
@@ -435,7 +435,7 @@ theorem CoInd.csup_eq_bot {c} [Inhabited (F PUnit)] :
   induction n; rfl
   next n ih =>
   rw [CoInd.bot_eq, CoInd.csup_eq]
-  simp [*, fold_approx]
+  simp [*, fold_approx]; rfl
 
 theorem CoInd.le_unfold [Inhabited (F PUnit)] c1 c2 :
     (c1 ⊑ c2) = (c1 = bot F ∨ coherent1 (PartialOrder.rel) (PF.unpack c1.unfold) (PF.unpack c2.unfold)) := by
@@ -614,7 +614,7 @@ theorem CoIndN.bot.eq_plus_1 [Inhabited (F PUnit)] n :
     CoIndN.bot F (n + 1) = PF.map F (λ _ : PUnit => CoIndN.bot F n) default := by
   unfold CoIndN.bot
   rw (occs:=[1]) [CoInd.bot_eq]
-  simp [CoInd.fold]
+  simp [CoInd.fold]; rfl
 
 /-- The pointwise partial order on `CoIndN F n`: `c1 ≤ c2` at depth 0 is always true;
 at depth `n+1`, either `c1` is bot or both have the same shape

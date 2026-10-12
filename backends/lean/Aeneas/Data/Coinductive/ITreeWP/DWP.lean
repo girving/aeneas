@@ -36,7 +36,8 @@ def DWP (θ : EffectWP E) [θ.Monotonic] (m : ITree E α) (Q : θ.Post α) : θ.
 /-- Unfolding of `DWP` into its impredicative definition. -/
 theorem DWP.def :
     DWP θ m Q s ↔ ∀ X : ITreePred θ α, FunctionalWP False θ Q X ≤ X → X m s := by
-  simp [DWP, OrderHom.lfp, FunctionalWP.hom, entails_iff_le]
+  show (sInf {X : ITreePred θ α | LE.le (FunctionalWP False θ Q X) X}) m s ↔ _
+  simp [entails_iff_le]
 
 /-- DWP is the least fixpoint -/
 theorem DWP.least : FunctionalWP False θ Q X ≤ X -> (fun m => DWP θ m Q) ≤ X :=

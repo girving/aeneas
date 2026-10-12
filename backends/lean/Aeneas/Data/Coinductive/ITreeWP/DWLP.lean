@@ -38,7 +38,8 @@ def DWLP (θ : EffectWP E) [θ.Monotonic] (m : ITree E α) (Q : θ.Post α) : θ
 /-- Unfolding of `DWLP` into its impredicative definition. -/
 theorem DWLP.def :
     DWLP θ m Q s ↔ ∃ X : ITreePred θ α, X ≤ FunctionalWP True θ Q X ∧ X m s := by
-  simp [DWLP, OrderHom.gfp, FunctionalWP.hom, entails_iff_le]
+  show (sSup {X : ITreePred θ α | LE.le X (FunctionalWP True θ Q X)}) m s ↔ _
+  simp [entails_iff_le]
 
 /-- DWLP is the greatest fixpoint -/
 theorem DWLP.greatest : X ≤ FunctionalWP True θ Q X -> X ≤ (fun m => DWLP θ m Q) :=

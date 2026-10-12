@@ -109,17 +109,17 @@ def Result.match.{u} {α : Type u} (r : Result α) : MatchResult α :=
 
 @[simp, grind =]
 theorem Result.match.ok {α : Type u} {a : α} : (Result.ok a).match = .ok a := by
-  simp [Result.match, Result.ok, Result.cases]
+  simp only [Result.match, Result.ok, Result.cases]; exact ITree.cases.ret
 @[simp, grind =]
 theorem Result.match.vis {α : Type u} {e k} : (@Result.vis α e k).match = .vis e k := by
-  simp [Result.match, Result.vis, Result.cases]
+  simp only [Result.match, Result.vis, Result.cases]; exact ITree.cases.vis
 @[simp, grind =]
 theorem Result.match.div {α : Type u} : Result.div.match = @MatchResult.div α := by
-  simp [Result.match, Result.div, Result.cases]
+  simp only [Result.match, Result.div, Result.cases]; exact ITree.cases.div
 @[simp, grind =]
 theorem Result.match.fail {α : Type u} {e} :
   (Result.fail e : Result α).match = .vis (.fail e) PEmpty.elim := by
-  simp [Result.fail_eq_vis]
+  rw [Result.fail_eq_vis]; exact Result.match.vis
 
 /-- The `Repr` instance for `Result`, so that `#eval` on `Result`-producing expressions prints `Aeneas.Std.Result.ok`/`fail`/`div`. -/
 instance Result.reprInst {α : Type u} [Repr α] : Repr (Result α) where
@@ -148,7 +148,11 @@ theorem Result.ok_injective {α} : Function.Injective (@Result.ok α) := by
 /-- `Result.fail` is opaque, so its injectivity has to be stated separately. -/
 @[grind inj]
 theorem Result.fail_injective {α} : Function.Injective (@Result.fail α) := by
-  intro a b h; simpa using congrArg Result.match h
+  intro a b h
+  have h := congrArg Result.match h
+  simp only [Result.match.fail] at h
+  injection h with h
+  injection h
 
 /-! The disequality lemmas for the constructors of `Result`. They all follow from the fact that
 `Result.match` maps the constructors to *distinct* constructors of the inductive `MatchResult`. -/
@@ -248,17 +252,17 @@ def Result.ofOption {a : Type u} (x : Option a) (e : Error) : Result a :=
 -/
 
 @[simp] theorem bind_ok (x : α) (f : α → Result β) : bind (.ok x) f = f x :=
-  by simp [bind, ok]
+  itree_ret_bind x f
 @[simp] theorem bind_vis (e k) (f : α → Result β) : bind (.vis e k) f = .vis e (fun x => bind (k x) f) :=
-  by simp [bind, vis]
-     rfl
+  show ITree.bind (ITree.vis e k) f = ITree.vis e (fun x => ITree.bind (k x) f) from itree_vis_bind e k f
 @[simp] theorem bind_fail (e : Error) (f : α → Result β) : bind (.fail e) f = .fail e := by
-  simp only [Result.fail_eq_vis, bind_vis]
-  apply congrArg
+  rw [Result.fail_eq_vis]
+  refine (bind_vis _ _ f).trans ?_
+  congr 1
   funext x
-  exact x.elim
+  exact (x : PEmpty).elim
 
-@[simp] theorem bind_div (f : α → Result β) : bind .div f = .div := by simp [bind, div]
+@[simp] theorem bind_div (f : α → Result β) : bind .div f = .div := itree_div_bind f
 
 
 
@@ -276,14 +280,7 @@ protected theorem pure_bind {α : Type u} {β : Type v} (x : α) (f : α → Res
     (x : Result α) (f : α → Result β) (g : β → Result γ) :
     bind (bind x f) g = bind x (fun x => bind (f x) g) := by
   change ITree.bind (ITree.bind x f) g = ITree.bind x (fun x => ITree.bind (f x) g)
-  ext n
-  induction n generalizing x
-  · rfl
-  · rw [ITree.bind.eq_def x, ITree.bind.eq_def x]
-    split
-    · simp
-    · simp
-    · simp [*]
+  exact itree_bind_assoc x f g
 
 instance : LawfulMonad Result := LawfulMonad.mk' Result
   (id_map := Std.bind_pure)
@@ -298,19 +295,16 @@ theorem bind_tc_eq {α β : Type u} (x : Result α) (f : α → Result β) :
 theorem pure_tc_eq {α : Type u} (x : α) : (pure x : Result α) = .ok x := rfl
 
 @[simp] theorem bind_tc_ok (x : α) (f : α → Result β) :
-  (do let y ← .ok x; f y) = f x := by simp [bind, Bind.bind, ok]
+  (do let y ← .ok x; f y) = f x := bind_ok x f
 
 @[simp] theorem bind_tc_vis (e k) (f : α → Result β) :
-  (do let y ← Result.vis e k; f y) = .vis e (fun x => do let y ← k x; f y) := by
-  simp [bind, Bind.bind, vis]
-  rfl
+  (do let y ← Result.vis e k; f y) = .vis e (fun x => do let y ← k x; f y) := bind_vis e k f
 
 @[simp] theorem bind_tc_fail (e : Error) (f : α → Result β) :
-  (do let y ← Result.fail e; f y) = .fail e := by
-  simp [Bind.bind]
+  (do let y ← Result.fail e; f y) = .fail e := bind_fail e f
 
 @[simp] theorem bind_tc_div (f : α → Result β) :
-  (do let y ← div; f y) = div := by simp [bind, Bind.bind, div]
+  (do let y ← div; f y) = div := bind_div f
 
 /-- `Std.bind_assoc` for the typeclass bind (whose computations live in the same universe). -/
 @[simp] theorem bind_assoc_eq {a b c : Type u}

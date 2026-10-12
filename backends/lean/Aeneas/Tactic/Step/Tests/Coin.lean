@@ -13,12 +13,13 @@ open Std Result WP Data Coinductive Effect Lean.Order
 
 namespace Aeneas.Tactic.Step.Tests.Coin
 
-def CoinEffect : Effect := {
+@[reducible] def CoinEffect : Effect := {
    I := Unit
    O := fun _ => Bool
 }
 
-def ITreeC := ITree CoinEffect
+-- `abbrev`: since Lean v4.34 the `coinductive` construction rewrites at instance transparency.
+abbrev ITreeC := ITree CoinEffect
 
 -- can just use coinductive props!
 coinductive coinSpec {α} (p : Post α) : (x : ITreeC α) → Prop where
@@ -63,13 +64,18 @@ theorem coinSpec_bind {α β} {k : α -> ITreeC β} {Pₖ : Post β} {m : ITreeC
       | vis m' k' =>
         right
         exists m'
-        simp
-        intros b
-        exists (ITree.ret a)
-        simp [*, coinSpec.ret]
-        unfold qimp_coinSpec
-        exists (fun _ => m' b) -- this seems really weird. is the statement really right?
-        simp [*]
+        -- `CoinEffect.O () = Bool`, so the goal is split into the `false` and `true` branches.
+        refine ⟨?_, ?_, rfl⟩
+        · exists (ITree.ret a)
+          simp [*, coinSpec.ret]
+          unfold qimp_coinSpec
+          exists (fun _ => m' false) -- this seems really weird. is the statement really right?
+          simp [*]
+        · exists (ITree.ret a)
+          simp [*, coinSpec.ret]
+          unfold qimp_coinSpec
+          exists (fun _ => m' true) -- this seems really weird. is the statement really right?
+          simp [*]
     | vis m k =>
       simp
       right
@@ -83,7 +89,7 @@ instance : MonadLift Result ITreeC where
   | .ok a => .ret a
   | _ => .div -- TODO
 
-theorem spec_coinSpec {α} {x : Result α} {p: Post α} : spec x p → coinSpec p x := by
+theorem spec_coinSpec {α} {x : Result α} {p: Post α} : spec x p → coinSpec p (monadLift x : ITreeC α) := by
   intros s
   cases x
   · apply coinSpec.ret

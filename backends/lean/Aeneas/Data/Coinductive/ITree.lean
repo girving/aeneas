@@ -62,7 +62,7 @@ theorem ITree.unfold_fold (t : ITree E R) :
 @[simp]
 theorem ret_approx_1 (r : R) n :
   (ITree.ret (E:=E) r).approx (n + 1) = ITreeF.ret r := by
-    simp [ITree.ret, ITree.fold, CoInd.fold, PF.map, PF.pack, PF.unpack]
+    simp [ITree.ret, ITree.fold, CoInd.fold, PF.map, PF.pack, PF.unpack]; rfl
     --
 
 @[simp]
@@ -73,7 +73,7 @@ theorem fold_ret_approx_1 (r : R) n :
 @[simp]
 theorem div_approx_1 n :
   (ITree.div (E:=E) (R:=R)).approx  (n + 1) = ITreeF.div := by
-    simp [ITree.div, ITree.fold, CoInd.fold, PF.map, PF.pack, PF.unpack]
+    simp [ITree.div, ITree.fold, CoInd.fold, PF.map, PF.pack, PF.unpack]; rfl
 
 @[simp]
 theorem fold_div_approx_1 n :
@@ -110,7 +110,8 @@ theorem vis_monoN i (t1 t2 : E.O i → ITree E R) n :
   CoIndN.le _ ((ITree.vis i t1).approx (n + 1)) ((ITree.vis i t2).approx (n + 1))
  := by
     intro hs
-    simp [CoIndN.le, PF.unpack]
+    unfold CoIndN.le
+    simp [PF.unpack]
     right
     constructor <;> try rfl
     grind [coherent1]
@@ -133,7 +134,7 @@ theorem ITree.bot_eq :
     ext n
     induction n; congr 0
     rw [CoInd.bot_eq, div]
-    simp [PF.map, PF.pack, CoInd.fold, *, PF.unpack, default]
+    simp [PF.map, PF.pack, CoInd.fold, *, PF.unpack, default]; rfl
 
 
 theorem ITree.le_unfold (t1 t2 : ITree E R) :
@@ -197,11 +198,11 @@ theorem bind_mono {α} {S} [PartialOrder α]
     dsimp only
     have hlef : (f t1) ⊑ (f t2) := by apply hf; assumption
     generalize f t1 = t1, f t2 = t2 at hlef
-    induction n generalizing t1 t2; simp [CoIndN.le]
+    induction n generalizing t1 t2; (unfold CoIndN.le; simp)
     unfold ITree.bind
     rw [ITree.le_unfold] at hlef
     rcases hlef with (rfl|⟨_, rfl, rfl⟩|⟨_, _, _, rfl, rfl, _⟩)
-    · simp [CoIndN.le, CoIndN.bot]
+    · unfold CoIndN.le; simp [CoIndN.bot]; left; rfl
     · rename_i x
       simp
       have := hg t1 t2 hle x
@@ -239,7 +240,16 @@ theorem unfold_pure (r : R) :
 @[simp]
 theorem pure_approx_1 (r : R) n :
   (pure r : ITree _ _).approx (n + 1) = ITreeF.ret (E:=E) r := by
-    simp [pure]
+    simp [pure]; rfl
+
+/-- Associativity of `ITree.bind` across universes (the `LawfulMonad` field is single-universe). -/
+theorem itree_bind_assoc {S T} (t1 : ITree E R) (t2 : R → ITree E S) (t3 : S → ITree E T) :
+    ITree.bind (ITree.bind t1 t2) t3 = ITree.bind t1 (fun x => ITree.bind (t2 x) t3) := by
+  ext n
+  induction n generalizing t1; congr 0
+  rw [ITree.bind.eq_def t1]
+  rw [ITree.bind.eq_def t1]
+  split <;> simp [*] <;> rfl
 
 instance : LawfulMonad (ITree E) := LawfulMonad.mk' (ITree E)
   (id_map := by
@@ -248,7 +258,7 @@ instance : LawfulMonad (ITree E) := LawfulMonad.mk' (ITree E)
     ext n
     induction n generalizing t; congr 0
     unfold ITree.bind
-    cases t <;> simp [*])
+    cases t <;> simp [*] <;> rfl)
   (pure_bind := by simp [pure, Bind.bind])
   (bind_assoc := by
     simp [Bind.bind]
@@ -257,7 +267,7 @@ instance : LawfulMonad (ITree E) := LawfulMonad.mk' (ITree E)
     induction n generalizing t1; congr 0
     rw [ITree.bind.eq_def t1]
     rw [ITree.bind.eq_def t1]
-    split <;> simp [*])
+    split <;> simp [*] <;> rfl)
 
 instance : MonoBind (ITree E) where
   bind_mono_left := by
@@ -357,6 +367,19 @@ theorem ITree.cases.div {E R motive r d v}
 @[simp]
 theorem ITree.cases.vis {E R motive r d v e k}
   : @ITree.cases E R motive r d v (.vis e k) = v e k := by cbv
+
+-- Non-dependent versions: `simp` matches these where the dependent motive above defeats it (since Lean v4.34)
+@[simp]
+theorem ITree.cases.ret_const {E R} {β : Sort v} {r : R → β} {d : β} {v : ∀ i, (E.O i → ITree E R) → β} {x : R}
+  : @ITree.cases E R (fun _ => β) r d v (.ret x) = r x := by cbv
+
+@[simp]
+theorem ITree.cases.div_const {E R} {β : Sort v} {r : R → β} {d : β} {v : ∀ i, (E.O i → ITree E R) → β}
+  : @ITree.cases E R (fun _ => β) r d v .div = d := by cbv
+
+@[simp]
+theorem ITree.cases.vis_const {E R} {β : Sort v} {r : R → β} {d : β} {v : ∀ i, (E.O i → ITree E R) → β} {e k}
+  : @ITree.cases E R (fun _ => β) r d v (.vis e k) = v e k := by cbv
 
 theorem ITree.le_div_is_div
   (t : ITree E R)

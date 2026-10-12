@@ -1,5 +1,6 @@
 module
 public import Aeneas.Tactic.Conv.Bvify.Init
+public import Aeneas.Tactic.Conv.Bvify.Widths
 public import Aeneas.Tactic.Solver.Arith.Lemmas
 public import Aeneas.Std.Scalar
 public import Aeneas.Std.PrimitivesLemmas

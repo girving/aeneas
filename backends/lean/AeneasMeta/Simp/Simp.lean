@@ -115,18 +115,18 @@ where
   go (fvarIdsToSimp : Array FVarId) (simplifyTarget : Bool) : TacticM (Option (Array FVarId) × Simp.Stats) := do
     let mvarId ← getMainGoal
     let (result?, stats) ← simpGoal mvarId ctx (simprocs := simprocs) (simplifyTarget := simplifyTarget) (discharge? := discharge?) (fvarIdsToSimp := fvarIdsToSimp)
-    let freshFVarIds ←
+    let freshFVarIds : Option (Array FVarId) ←
       match result? with
       | none => replaceMainGoal []; pure none
-      | some (fvars, mvarId) => replaceMainGoal [mvarId]; pure fvars
+      | some (fvars, mvarId) => replaceMainGoal [mvarId]; pure (some fvars)
     /- We need to filter the `fvarIdsToSimp` to remove those which have been replaced with fresh fvars -/
-    let fvars ← do
+    let fvars : Option (Array FVarId) ← do
       match freshFVarIds with
       | none => pure none
       | some freshFVarIds =>
         withMainContext do
         let ctx ← getLCtx
-        let ldecls := ctx.foldl (fun set decl => set.insert decl.fvarId) Std.HashSet.emptyWithCapacity
+        let ldecls := ctx.foldl (fun (set : Std.HashSet FVarId) decl => set.insert decl.fvarId) Std.HashSet.emptyWithCapacity
         pure (fvarIdsToSimp.filter ldecls.contains ++ freshFVarIds)
     return (fvars, stats)
 

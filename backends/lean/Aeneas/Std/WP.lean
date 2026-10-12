@@ -18,8 +18,10 @@ open Std Result
 open Aeneas.Data.Coinductive
 open Lean.Order
 
-@[expose] def Post α := (α -> Prop)
-@[expose] def Pre := Prop
+-- Reducible since Lean v4.34: `simp` checks type-correctness at instance transparency, so `uncurry f : α × β → Prop`
+-- must be seen as a `Post (α × β)` without unfolding.
+@[expose, reducible] def Post α := (α -> Prop)
+@[expose, reducible] def Pre := Prop
 
 @[expose] def Wp α := Post α → Pre
 
@@ -100,7 +102,7 @@ theorem spec_ok (x : α) : spec (ok x) p ↔ p x := DWP.ret_iff
 theorem spec_vis (e k) : spec (.vis e k) p ↔ False := ⟨fun h => DWP.vis_view h, False.elim⟩
 
 @[simp, grind =, agrind =]
-theorem spec_fail (e : Error) : spec (fail e) p ↔ False := by simp [Result.fail_eq_vis]
+theorem spec_fail (e : Error) : spec (fail e) p ↔ False := by rw [Result.fail_eq_vis]; exact spec_vis _ _
 
 @[simp, grind =, agrind =]
 theorem spec_div : spec div p ↔ False := ⟨DWP.div_false, False.elim⟩
@@ -164,7 +166,7 @@ theorem dspec_vis (e k) : dspec (.vis e k) p ↔ False := ⟨fun h => DWLP.vis_v
 theorem dspec_div : dspec (div : Result α) p ↔ True := iff_true_intro DWLP.div
 
 @[simp, grind =, agrind =]
-theorem dspec_fail (e : Error) : dspec (fail e) p ↔ False := by simp [Result.fail_eq_vis]
+theorem dspec_fail (e : Error) : dspec (fail e) p ↔ False := by rw [Result.fail_eq_vis]; exact dspec_vis _ _
 
 theorem dspec_and {m : Result α} {p q : Post α} (h₁ : dspec m p) (h₂ : dspec m q) :
     dspec m (fun value => p value ∧ q value) :=
