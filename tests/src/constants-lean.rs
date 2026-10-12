@@ -55,3 +55,19 @@ const FEATURE_C: u32 = 0x20;
 
 const TWO_FEATURES: u32 = FEATURE_A | FEATURE_B;
 const THREE_FEATURES: u32 = FEATURE_A | FEATURE_B | FEATURE_C;
+
+// An associated constant built from another trait's constants inside an aggregate or a repeat expression: its body
+// reads trait constants (fallible, like trait methods), so it must be monadic.
+trait HasZero {
+    const ZERO: Self;
+    const ONE: Self;
+}
+
+struct Pair<T> {
+    x: [T; 2],
+}
+
+impl<T: HasZero + Copy> HasZero for Pair<T> {
+    const ZERO: Self = Pair { x: [T::ZERO; 2] };
+    const ONE: Self = Pair { x: [T::ONE, T::ZERO] };
+}

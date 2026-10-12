@@ -144,12 +144,22 @@ let analyze_module (m : crate) (funs_map : fun_decl FunDeclId.Map.t) :
             self#may_fail true;
             super#visit_Assert env a
 
+          (* We consider that trait constants can fail, similarly to trait
+             methods (their translation is monadic). They can occur anywhere
+             an operand can: directly ([Use]), but also inside aggregates
+             ([[F::ONE, F::ZERO]]), repeats ([[F::ZERO; N]]), and the operands
+             of unary and binary operations. *)
+          method! visit_constant_expr env c =
+            (match c.kind with
+            | CTraitConst _ -> self#may_fail true
+            | _ -> ());
+            super#visit_constant_expr env c
+
           method! visit_rvalue env rv =
+            (* Visit the operands (and the constants they contain) *)
+            super#visit_rvalue env rv;
             match rv with
-            | Use (Constant { kind = CTraitConst _; _ }, _) ->
-                (* We consider that trait constants can fail, similarly to
-                   trait methods. *)
-                self#may_fail true
+            | Use (Constant { kind = CTraitConst _; _ }, _) -> ()
             | Use _
             | RvRef ({ kind = PlaceLocal _ | PlaceProjection _; _ }, _, _)
             | Discriminant _

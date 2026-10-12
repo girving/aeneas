@@ -160,4 +160,42 @@ def THREE_FEATURES : Std.U32 :=
   let i := FEATURE_A ||| FEATURE_B
   i ||| FEATURE_C
 
+/-- Trait declaration: [constants_lean::HasZero]
+    Source: 'tests/src/constants-lean.rs', lines 61:0-64:1 -/
+structure HasZero (Self : Type) where
+  ZERO : Result Self
+  ONE : Result Self
+
+/-- [constants_lean::Pair]
+    Source: 'tests/src/constants-lean.rs', lines 66:0-68:1 -/
+structure Pair (T : Type) where
+  x : Array T 2#usize
+
+/-- [constants_lean::{impl constants_lean::HasZero for constants_lean::Pair<T>}::ONE]
+    Source: 'tests/src/constants-lean.rs', lines 72:4-72:52 -/
+@[global_simps, irreducible]
+def Pair.Insts.Constants_leanHasZero.ONE {T : Type} (HasZeroInst : HasZero T)
+  (coremarkerCopyInst : core.marker.Copy T) : Result (Pair T) := do
+  let t ← HasZeroInst.ONE
+  let t1 ← HasZeroInst.ZERO
+  ok { x := (Array.make 2#usize [ t, t1 ]) }
+
+/-- [constants_lean::{impl constants_lean::HasZero for constants_lean::Pair<T>}::ZERO]
+    Source: 'tests/src/constants-lean.rs', lines 71:4-71:48 -/
+@[global_simps, irreducible]
+def Pair.Insts.Constants_leanHasZero.ZERO {T : Type} (HasZeroInst : HasZero T)
+  (coremarkerCopyInst : core.marker.Copy T) : Result (Pair T) := do
+  let t ← HasZeroInst.ZERO
+  let a := Array.repeat 2#usize t
+  ok { x := a }
+
+/-- Trait implementation: [constants_lean::{impl constants_lean::HasZero for constants_lean::Pair<T>}]
+    Source: 'tests/src/constants-lean.rs', lines 70:0-73:1 -/
+@[reducible]
+def Pair.Insts.Constants_leanHasZero {T : Type} (HasZeroInst : HasZero T)
+  (coremarkerCopyInst : core.marker.Copy T) : HasZero (Pair T) := {
+  ZERO := Pair.Insts.Constants_leanHasZero.ZERO HasZeroInst coremarkerCopyInst
+  ONE := Pair.Insts.Constants_leanHasZero.ONE HasZeroInst coremarkerCopyInst
+}
+
 end constants_lean
