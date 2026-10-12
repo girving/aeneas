@@ -1352,9 +1352,16 @@ let simplify_let_branching (ctx : ctx) (def : fun_decl) =
     let rec explore (branchings : fvar_id list TExprMap.t) (e : texpr) : unit =
       match e.e with
       | FVar _ | CVar _ | Const _ | StructUpdate _ | Qualif _ | Lambda _ ->
-          [%sanity_check] span (num_outs = 1);
-          push_to_outs 0 (e :: get_equal_values branchings e)
-      | BVar _ -> [%internal_error] span
+          (* With several outputs (a tuple pattern) a leaf like a tuple-typed
+             variable cannot be split into the outputs: no simplification. *)
+          if num_outs = 1 then
+            push_to_outs 0 (e :: get_equal_values branchings e)
+          else push_empty_possibilities ()
+      | BVar _ ->
+          (* A variable bound by a let inside the bound expression (we descend
+             into the bodies of lets below): it cannot refer to anything bound
+             before, so we can't simplify anything. *)
+          push_empty_possibilities ()
       | App _ ->
           (* *)
           if is_result_fail e || is_loop_result_fail_break_continue e then ()
